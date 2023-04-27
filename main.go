@@ -69,6 +69,7 @@ func main() {
 		fmt.Println(heightCore)
 		if err != nil {
 			c.String(http.StatusOK, "Wrong height %s", height)
+			return
 		}
 		rows, err := db.Query("SELECT blob_base64, height_core FROM blobs WHERE nid = ? and height_core = ?", nid, heightCore)
 		if err != nil {
