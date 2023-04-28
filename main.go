@@ -12,18 +12,15 @@ import (
 )
 
 func main() {
-	// sql.DB 객체 생성
-	db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/celestia-rollup-explorer")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
 	r := gin.Default()
 	r.GET("/namespaced_data/:nid", func(c *gin.Context) {
-		nid := c.Param("nid") // fcb1a75aeaed7065
+		db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/celestia-rollup-explorer")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
 
-		// 복수 Row를 갖는 SQL 쿼리
+		nid := c.Param("nid") // fcb1a75aeaed7065
 		var heightCore int64
 		var blob string
 		var blobs []string
@@ -31,7 +28,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer rows.Close() //반드시 닫는다 (지연하여 닫기)
+		defer rows.Close()
 
 		for rows.Next() {
 			err := rows.Scan(&blob, &heightCore)
@@ -47,10 +44,14 @@ func main() {
 		})
 	})
 	r.GET("/namespaced_data/:nid/height/:height", func(c *gin.Context) {
+		db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/celestia-rollup-explorer")
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
 		nid := c.Param("nid")       // fcb1a75aeaed7065
 		height := c.Param("height") // 200000
-
-		// 복수 Row를 갖는 SQL 쿼리
 		var heightCore int
 		var blob string
 		var blobs []string
@@ -59,11 +60,23 @@ func main() {
 			c.String(http.StatusOK, "Wrong height %s", height)
 			return
 		}
+
+		var storeHeight int
+		// check whether heightCore is upper than latest height
+		err = db.QueryRow("SELECT max(height) FROM core_blocks").Scan(&storeHeight)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if storeHeight < heightCore {
+			c.String(http.StatusOK, `"current head local chain head: %d is lower than requested height: %d give header sync some time and retry later"`, storeHeight, heightCore)
+			return
+		}
+
 		rows, err := db.Query("SELECT blob_base64, height_core FROM blobs WHERE nid = ? and height_core = ?", nid, heightCore)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer rows.Close() //반드시 닫는다 (지연하여 닫기)
+		defer rows.Close()
 
 		for rows.Next() {
 			err := rows.Scan(&blob, &heightCore)
