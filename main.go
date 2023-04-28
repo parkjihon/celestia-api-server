@@ -28,6 +28,7 @@ func main() {
 		// 복수 Row를 갖는 SQL 쿼리
 		var heightCore int64
 		var blob string
+		var blobs []string
 		fmt.Println(nid)
 		fmt.Println(heightCore)
 		rows, err := db.Query("SELECT blob_base64, height_core FROM blobs WHERE nid = ? order by height_core desc limit 1", nid)
@@ -42,14 +43,15 @@ func main() {
 				log.Fatal(err)
 			}
 			fmt.Println(blob, heightCore)
+			blobs = append(blobs, blob)
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"blob":   blob,
+			"data":   blobs,
 			"height": heightCore,
 		})
 	})
-	r.GET("/namespaced_data/:nid/:height", func(c *gin.Context) {
+	r.GET("/namespaced_data/:nid/height/:height", func(c *gin.Context) {
 		nid := c.Param("nid")       // fcb1a75aeaed7065
 		height := c.Param("height") // 200000
 
@@ -87,7 +89,7 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"blob":   blobs,
+			"data":   blobs,
 			"height": heightCore,
 		})
 	})
