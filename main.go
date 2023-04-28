@@ -92,13 +92,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if storeHeight < heightCore {
-			c.Header("Content-Type", "application/json")
-			c.Writer.Header().Set("Content-Type", "application/json")
-			err = fmt.Errorf("current head local chain head: %d is lower than requested height: %d"+" give header sync some time and retry later", storeHeight, heightCore)
-			writeError(c.Writer, http.StatusInternalServerError, namespacedDataEndpoint, err)
-			return
-		}
 
 		rows, err := db.Query("SELECT blob_base64, height_core FROM blobs WHERE nid = ? and height_core = ?", nid, heightCore)
 		if err != nil {
@@ -112,6 +105,13 @@ func main() {
 				log.Fatal(err)
 			}
 			blobs = append(blobs, blob)
+		}
+		if storeHeight < heightCore {
+			c.Header("Content-Type", "application/json")
+			c.Writer.Header().Set("Content-Type", "application/json")
+			err = fmt.Errorf("current head local chain head: %d is lower than requested height: %d"+" give header sync some time and retry later", storeHeight, heightCore)
+			writeError(c.Writer, http.StatusInternalServerError, namespacedDataEndpoint, err)
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
