@@ -2,14 +2,39 @@ package main
 
 import (
 	"database/sql"
-	"log"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+
+	logging "github.com/ipfs/go-log/v2"
 
 	"github.com/gin-gonic/gin"
 
 	_ "github.com/go-sql-driver/mysql"
 )
+
+var log = logging.Logger("gateway")
+
+const (
+	namespacedSharesEndpoint = "/namespaced_shares"
+	namespacedDataEndpoint   = "/namespaced_data"
+)
+
+func writeError(w http.ResponseWriter, statusCode int, endpoint string, err error) {
+	log.Errorw("serving request", "endpoint", endpoint, "err", err)
+
+	w.WriteHeader(statusCode)
+	errBody, jerr := json.Marshal(err.Error())
+	if jerr != nil {
+		log.Errorw("serializing error", "endpoint", endpoint, "err", jerr)
+		return
+	}
+	_, werr := w.Write(errBody)
+	if werr != nil {
+		log.Errorw("writing error response", "endpoint", endpoint, "err", werr)
+	}
+}
 
 func main() {
 	r := gin.Default()
@@ -67,10 +92,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if storeHeight < heightCore {
-			c.String(http.StatusOK, `"current head local chain head: %d is lower than requested height: %d give header sync some time and retry later"`, storeHeight, heightCore)
-			return
-		}
 
 		rows, err := db.Query("SELECT blob_base64, height_core FROM blobs WHERE nid = ? and height_core = ?", nid, heightCore)
 		if err != nil {
@@ -84,6 +105,13 @@ func main() {
 				log.Fatal(err)
 			}
 			blobs = append(blobs, blob)
+		}
+		if storeHeight < heightCore {
+			c.Header("Content-Type", "application/json")
+			c.Writer.Header().Set("Content-Type", "application/json")
+			err = fmt.Errorf("current head local chain head: %d is lower than requested height: %d"+" give header sync some time and retry later", storeHeight, heightCore)
+			writeError(c.Writer, http.StatusInternalServerError, namespacedDataEndpoint, err)
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
