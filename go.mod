@@ -1,4 +1,4 @@
-module 202304/celestia/celestia-api-server
+module celestia-api-server
 
 go 1.20
 
