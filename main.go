@@ -9,9 +9,9 @@ import (
 
 	logging "github.com/ipfs/go-log/v2"
 
-	"github.com/gin-gonic/gin"
-
 	"celestia-api-server/types"
+
+	"github.com/gin-gonic/gin"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -37,9 +37,25 @@ func writeError(w http.ResponseWriter, statusCode int, endpoint string, err erro
 		log.Errorw("writing error response", "endpoint", endpoint, "err", werr)
 	}
 }
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Header("Access-Control-Allow-Methods", "POST,HEAD,PATCH, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
 func main() {
 	r := gin.Default()
+	r.Use(CORSMiddleware())
 	r.GET("/namespaced_data/:nid", func(c *gin.Context) {
 		db, err := sql.Open("mysql", "root:password@tcp(127.0.0.1:3306)/celestia-rollup-explorer")
 		if err != nil {
