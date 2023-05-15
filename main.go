@@ -182,25 +182,25 @@ func main() {
 			top10TXedNIDs = append(top10TXedNIDs, top10TXedNID)
 		}
 
-		var topHeightNID types.Top10TXedNID
-		var topHeightNIDs []types.Top10TXedNID
-		rows, err = db.Query("select nid, max(height) as height from blobs where height <> 0 group by nid order by height desc limit 5")
-		if err != nil {
-			fmt.Println(err)
-		}
-		defer rows.Close()
-		for rows.Next() {
-			err := rows.Scan(&topHeightNID.Nid, &topHeightNID.Cnt)
-			if err != nil {
-				fmt.Println(err)
-			}
-			err = db.QueryRow("select chain_id from blobs where nid = ? limit 1", topHeightNID.Nid).Scan(&topHeightNID.ChainId)
-			if err != nil {
-				fmt.Println(err)
-			}
+		// var topHeightNID types.Top10TXedNID
+		// var topHeightNIDs []types.Top10TXedNID
+		// rows, err = db.Query("select nid, max(height) as height from blobs where height <> 0 group by nid order by height desc limit 5")
+		// if err != nil {
+		// 	fmt.Println(err)
+		// }
+		// defer rows.Close()
+		// for rows.Next() {
+		// 	err := rows.Scan(&topHeightNID.Nid, &topHeightNID.Cnt)
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 	}
+		// 	err = db.QueryRow("select chain_id from blobs where nid = ? limit 1", topHeightNID.Nid).Scan(&topHeightNID.ChainId)
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 	}
 
-			topHeightNIDs = append(topHeightNIDs, topHeightNID)
-		}
+		// 	topHeightNIDs = append(topHeightNIDs, topHeightNID)
+		// }
 
 		//select nid, FROM_UNIXTIME(`time`) as time, chain_id from blobs where height = 1 order by id desc limit 10;
 		var newCreatedNID types.NewCreatedNID
@@ -221,8 +221,8 @@ func main() {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"top10TXedNIDs":  top10TXedNIDs,
-			"topHeightNIDs":  topHeightNIDs,
+			"top10TXedNIDs": top10TXedNIDs,
+			// "topHeightNIDs":  topHeightNIDs,
 			"newCreatedNIDs": newCreatedNIDs,
 		})
 	})
